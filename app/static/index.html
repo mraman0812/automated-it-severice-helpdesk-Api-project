@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoHelpdesk | AI Ticket Classification & Ops</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="app-sidebar">
+      <div class="brand-header">
+        <div class="brand-logo">
+          <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">AutoHelpdesk</div>
+          <div class="brand-subtitle">AI ITSM & Automation</div>
+        </div>
+      </div>
+
+      <div class="nav-section-title">Navigation</div>
+      <ul class="nav-list">
+        <li class="nav-item active" id="nav-queue" onclick="switchTab('queue')">
+          <div class="nav-item-left">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            <span>Ticket Queue</span>
+          </div>
+          <span class="nav-badge" id="badge-total-tickets">0</span>
+        </li>
+
+        <li class="nav-item" id="nav-create" onclick="switchTab('create')">
+          <div class="nav-item-left">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span>New Ticket & AI</span>
+          </div>
+        </li>
+
+        <li class="nav-item" id="nav-review" onclick="switchTab('queue'); filterTickets('REVIEW');">
+          <div class="nav-item-left">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Human Review</span>
+          </div>
+          <span class="nav-badge" id="badge-review-tickets" style="background: rgba(168, 85, 247, 0.2); color: #d8b4fe;">0</span>
+        </li>
+
+        <li class="nav-item" id="nav-analytics" onclick="switchTab('analytics')">
+          <div class="nav-item-left">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <span>Analytics & SLA</span>
+          </div>
+        </li>
+
+        <li class="nav-item" id="nav-models" onclick="switchTab('models')">
+          <div class="nav-item-left">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            <span>ML Governance</span>
+          </div>
+          <span class="nav-badge" style="background: rgba(16, 185, 129, 0.2); color: #6ee7b7;">v1.0</span>
+        </li>
+      </ul>
+
+      <!-- System Status Footer -->
+      <div class="sidebar-footer">
+        <div class="sys-status-card">
+          <div class="sys-status-row">
+            <span style="color: var(--text-muted);">Database</span>
+            <span style="font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 4px;">
+              <span class="status-dot"></span> Connected
+            </span>
+          </div>
+          <div class="sys-status-row">
+            <span style="color: var(--text-muted);">Inference Model</span>
+            <span style="font-weight: 600; color: #a5b4fc;">TF-IDF + Calibrated</span>
+          </div>
+          <div class="sys-status-row">
+            <span style="color: var(--text-muted);">Latency</span>
+            <span style="font-family: 'JetBrains Mono'; font-weight: 600; color: #38bdf8;">&lt; 15 ms</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="app-main">
+      <!-- Topbar Header -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <div class="search-container">
+            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text" id="global-search" onkeyup="handleSearch(event)" placeholder="Search tickets by ID, keywords, symptoms, or category..." class="search-input">
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Role & User Switcher -->
+          <div class="user-selector-wrapper">
+            <div class="user-avatar" id="current-user-avatar">R</div>
+            <div>
+              <select id="user-switcher" onchange="switchUser(this.value)" class="user-select">
+                <option value="admin@example.com" selected>Admin User (ADMIN)</option>
+                <option value="manager@example.com">IT Manager (MANAGER)</option>
+                <option value="network.agent@example.com">Network Technician (AGENT)</option>
+                <option value="hardware.agent@example.com">Hardware Technician (AGENT)</option>
+                <option value="rajan@example.com">Rajan Sharma (EMPLOYEE)</option>
+              </select>
+            </div>
+          </div>
+
+          <a href="/docs" target="_blank" class="btn-docs">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+            <span>Swagger API</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Scrollable Content Body -->
+      <div class="content-body">
+        
+        <!-- KPI Metrics Banner -->
+        <section class="kpi-grid">
+          <div class="kpi-card kpi-total">
+            <div class="kpi-label">Total Tickets</div>
+            <div class="kpi-value" id="stat-total">0</div>
+            <div class="kpi-meta">
+              <span>All registered inquiries</span>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-active">
+            <div class="kpi-label">Active & Triage</div>
+            <div class="kpi-value" style="color: #f59e0b;" id="stat-active">0</div>
+            <div class="kpi-meta">
+              <span>Assigned & in progress</span>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-resolved">
+            <div class="kpi-label">Resolved / Closed</div>
+            <div class="kpi-value" style="color: #10b981;" id="stat-resolved">0</div>
+            <div class="kpi-meta">
+              <span>Successfully completed</span>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-review">
+            <div class="kpi-label">Needs Human Review</div>
+            <div class="kpi-value" style="color: #c084fc;" id="stat-review">0</div>
+            <div class="kpi-meta">
+              <span>Low confidence &lt; 80%</span>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-sla">
+            <div class="kpi-label">SLA Compliance</div>
+            <div class="kpi-value" style="color: #38bdf8;" id="stat-sla">100%</div>
+            <div class="kpi-meta">
+              <span>Target resolution met</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 1: TICKET QUEUE -->
+        <section id="view-queue" class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">
+                <span>Support Tickets Repository</span>
+              </h2>
+              <p class="panel-description">Manage real-time lifecycle, automated AI classifications, assignments, and resolution notes.</p>
+            </div>
+
+            <!-- Filter Chips Group -->
+            <div class="filter-group">
+              <button class="filter-chip active" id="filter-ALL" onclick="filterTickets('ALL')">All Tickets</button>
+              <button class="filter-chip" id="filter-ACTIVE" onclick="filterTickets('ACTIVE')">Active</button>
+              <button class="filter-chip" id="filter-REVIEW" onclick="filterTickets('REVIEW')" style="color: #d8b4fe;">Needs Review</button>
+              <button class="filter-chip" id="filter-CRITICAL" onclick="filterTickets('CRITICAL')" style="color: #fda4af;">Critical / High</button>
+              <button class="filter-chip" id="filter-RESOLVED" onclick="filterTickets('RESOLVED')" style="color: #6ee7b7;">Resolved</button>
+              <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="loadTickets()">↻ Refresh</button>
+            </div>
+          </div>
+
+          <!-- Table Container -->
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Ticket ID</th>
+                  <th>Title & Description</th>
+                  <th>Predicted Category</th>
+                  <th>Priority</th>
+                  <th>Assigned Department</th>
+                  <th>Technician</th>
+                  <th>Status</th>
+                  <th>AI Confidence</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tickets-table-body">
+                <tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">Loading tickets from database...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB 2: CREATE TICKET & LIVE AI PREDICTOR -->
+        <section id="view-create" class="creator-grid" style="display: none;">
+          <!-- Left: Input Form -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Submit Support Ticket</h2>
+                <p class="panel-description">Our NLP engine will analyze your input text, predict Category & Priority, and automatically assign the ticket to the best-suited technician.</p>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Issue Title</label>
+              <input type="text" id="new-title" placeholder="e.g., Cannot connect to corporate VPN from home" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Detailed Description</label>
+              <textarea id="new-description" placeholder="Describe symptoms, error codes, and what troubleshooting you attempted..." class="form-control"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Or load a quick test scenario:</label>
+              <div class="scenario-presets">
+                <button type="button" class="preset-chip" onclick="fillSample('vpn')">🌐 VPN Disconnection</button>
+                <button type="button" class="preset-chip" onclick="fillSample('hardware')">💻 Swollen Laptop Battery</button>
+                <button type="button" class="preset-chip" onclick="fillSample('password')">🔑 Forgotten Password</button>
+                <button type="button" class="preset-chip" onclick="fillSample('outage')">🚨 Production DB Outage</button>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+              <button type="button" class="btn btn-secondary" onclick="testPredictionOnly()">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>Test AI Prediction Sandbox</span>
+              </button>
+              <button type="button" class="btn btn-primary" onclick="submitNewTicket()">
+                <span>Submit & Auto-Classify Ticket</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right: Live AI Sandbox Inference Card -->
+          <div class="ai-sandbox-panel">
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <span class="ai-engine-tag">
+                  <span class="status-dot"></span> Live Model Sandbox
+                </span>
+                <span style="font-family: 'JetBrains Mono'; font-size: 11px; background: rgba(99, 102, 241, 0.15); color: #818cf8; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(99, 102, 241, 0.3);">Active: v1.0</span>
+              </div>
+
+              <div id="ai-placeholder" style="text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 13px;">
+                Type a title and description, then click "Test AI Prediction Sandbox" to inspect real-time NLP classification, subcategory resolution, and department routing.
+              </div>
+
+              <div id="ai-results" style="display: none;">
+                <div class="ai-prediction-card">
+                  <div class="ai-pred-label">Predicted Category & Subcategory</div>
+                  <div class="ai-pred-value" id="ai-res-category">-</div>
+                  <div style="font-size: 13px; color: #818cf8; font-weight: 600; margin-top: 2px;" id="ai-res-subcategory">-</div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                  <div class="ai-prediction-card" style="margin-bottom: 0;">
+                    <div class="ai-pred-label">Assigned Department</div>
+                    <div style="font-size: 15px; font-weight: 700; color: white; margin-top: 2px;" id="ai-res-dept">-</div>
+                  </div>
+                  <div class="ai-prediction-card" style="margin-bottom: 0;">
+                    <div class="ai-pred-label">Predicted Priority</div>
+                    <div style="font-size: 15px; font-weight: 700; color: white; margin-top: 2px;" id="ai-res-prio">-</div>
+                  </div>
+                </div>
+
+                <div class="ai-prediction-card confidence-meter-wrapper">
+                  <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600;">
+                    <span style="color: var(--text-secondary);">Model Confidence Score</span>
+                    <span style="font-family: 'JetBrains Mono'; font-weight: 700; color: white;" id="ai-res-conf">0%</span>
+                  </div>
+                  <div class="confidence-track">
+                    <div class="confidence-fill" id="ai-res-conf-bar" style="width: 0%;"></div>
+                  </div>
+                  <div id="ai-res-flag" style="font-size: 12px; margin-top: 8px;"></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border-subtle); padding-top: 14px; margin-top: 20px;">
+              Threshold Rule: Confidences &ge; 80% route automatically. Confidences &lt; 80% flag for human technician verification.
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 3: ANALYTICS & SLA -->
+        <section id="view-analytics" style="display: none; display: flex; flex-direction: column; gap: 24px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px;">
+            <!-- Category Chart Card -->
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Ticket Volume by Category</h3>
+              </div>
+              <div class="chart-bar-container" id="category-bars">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- Priority Chart Card -->
+            <div class="panel">
+              <div class="panel-header">
+                <h3 class="panel-title">Ticket Volume by Priority</h3>
+              </div>
+              <div class="chart-bar-container" id="priority-bars">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Technician Load Balancing Table -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Technician Workload & Load Balancing</h3>
+                <p class="panel-description">Real-time active ticket distribution used by the auto-assignment engine.</p>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Technician</th>
+                    <th>Department</th>
+                    <th>Active Tickets in Queue</th>
+                    <th>Resolved Tickets</th>
+                    <th>Load Status</th>
+                  </tr>
+                </thead>
+                <tbody id="workload-tbody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 4: ML GOVERNANCE & RETRAINING -->
+        <section id="view-models" style="display: none; display: flex; flex-direction: column; gap: 24px;">
+          <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 24px;">
+            <!-- Model Architecture Card -->
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">Active Model Architecture Specification</h3>
+                  <p class="panel-description">Production parameters for TF-IDF Vectorizer & Multi-Target Classifiers.</p>
+                </div>
+                <span class="badge badge-resolved">Active Serving</span>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                <div class="ai-prediction-card" style="margin: 0;">
+                  <div class="ai-pred-label">Architecture</div>
+                  <div style="font-size: 14px; font-weight: 700; margin-top: 4px;">TF-IDF + LogReg</div>
+                </div>
+                <div class="ai-prediction-card" style="margin: 0;">
+                  <div class="ai-pred-label">Accuracy</div>
+                  <div style="font-size: 14px; font-weight: 700; color: #10b981; margin-top: 4px;" id="ml-stat-acc">98.5%</div>
+                </div>
+                <div class="ai-prediction-card" style="margin: 0;">
+                  <div class="ai-pred-label">Macro F1</div>
+                  <div style="font-size: 14px; font-weight: 700; color: #38bdf8; margin-top: 4px;" id="ml-stat-f1">98.1%</div>
+                </div>
+                <div class="ai-prediction-card" style="margin: 0;">
+                  <div class="ai-pred-label">Active Version</div>
+                  <div style="font-size: 14px; font-weight: 700; color: #a855f7; margin-top: 4px;">v1.0</div>
+                </div>
+              </div>
+
+              <ul style="font-size: 13px; color: var(--text-secondary); line-height: 1.8; list-style: disc; padding-left: 20px;">
+                <li><strong>NLP Cleaning:</strong> Whitespace normalization, regex memory hex codes filter, negation-preserving stopwords.</li>
+                <li><strong>Feature Extraction:</strong> Sublinear TF-IDF Vectorizer (ngram range 1-2, 5,000 features, L2 norm).</li>
+                <li><strong>Multi-Target:</strong> 3 Independent calibrated models for Category, Subcategory, and Priority classification.</li>
+                <li><strong>Active Retraining Loop:</strong> Corrections logged through the Human-in-the-Loop queue automatically augment the training dataset.</li>
+              </ul>
+            </div>
+
+            <!-- Retrain Action Card -->
+            <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <h3 class="panel-title">Retrain Models</h3>
+                <p class="panel-description">Fit new weights on updated ticket volume and human feedback records.</p>
+                
+                <div class="form-group" style="margin-top: 20px;">
+                  <label class="form-label">Classifier Algorithm</label>
+                  <select id="train-algorithm" class="form-control">
+                    <option value="LogisticRegression">Logistic Regression (Calibrated)</option>
+                    <option value="LinearSVC">Linear Support Vector Machine (LinearSVC)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <button type="button" class="btn btn-primary" style="width: 100%;" id="btn-retrain" onclick="triggerRetraining()">
+                  <span>Start Model Retraining</span>
+                </button>
+                <div id="train-feedback" style="font-size: 12px; font-family: 'JetBrains Mono'; text-align: center; margin-top: 8px; color: var(--text-secondary);"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Training Runs History Table -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Training Run Audit Logs</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Run ID</th>
+                    <th>Version</th>
+                    <th>Train / Test Samples</th>
+                    <th>Validation Accuracy</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="runs-tbody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- TICKET DETAIL MODAL -->
+  <div class="modal-overlay" id="ticket-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="ticket-number-cell" style="font-size: 15px;" id="modal-ticket-id">IT-2026-000000</span>
+          <span class="badge badge-open" id="modal-status-badge">OPEN</span>
+          <span class="badge badge-medium" id="modal-priority-badge">MEDIUM</span>
+        </div>
+        <button class="modal-close-btn" onclick="closeModal()">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div>
+          <h2 style="font-size: 18px; font-weight: 700; color: white;" id="modal-title">Title</h2>
+          <div style="font-size: 13px; color: var(--text-secondary); background: rgba(0, 0, 0, 0.35); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); margin-top: 10px; white-space: pre-wrap;" id="modal-desc">Description</div>
+        </div>
+
+        <!-- Metadata Grid -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); padding: 12px; border-radius: var(--radius-md);">
+          <div>
+            <div class="ai-pred-label">Category</div>
+            <div style="font-size: 13px; font-weight: 700; color: white; margin-top: 2px;" id="modal-category">-</div>
+          </div>
+          <div>
+            <div class="ai-pred-label">Department</div>
+            <div style="font-size: 13px; font-weight: 700; color: white; margin-top: 2px;" id="modal-department">-</div>
+          </div>
+          <div>
+            <div class="ai-pred-label">Technician</div>
+            <div style="font-size: 13px; font-weight: 700; color: white; margin-top: 2px;" id="modal-agent">-</div>
+          </div>
+          <div>
+            <div class="ai-pred-label">AI Confidence</div>
+            <div style="font-size: 13px; font-weight: 700; color: white; margin-top: 2px;" id="modal-confidence">-</div>
+          </div>
+        </div>
+
+        <!-- Human-In-The-Loop Correction Block -->
+        <div class="panel" style="background: rgba(99, 102, 241, 0.06); border-color: rgba(99, 102, 241, 0.3); padding: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #a5b4fc; display: flex; align-items: center; gap: 6px;">
+              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              <span>Human-In-The-Loop: Override AI Prediction</span>
+            </div>
+            <span style="font-size: 10px; background: rgba(99, 102, 241, 0.2); color: #c7d2fe; padding: 2px 6px; border-radius: 4px;">Appends to Training Data</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px;">
+            <div>
+              <label class="form-label">Correct Category</label>
+              <select id="corr-cat" class="form-control" style="padding: 8px 10px; font-size: 12px;">
+                <option value="Network">Network</option>
+                <option value="Hardware">Hardware</option>
+                <option value="Software">Software</option>
+                <option value="Account & Access">Account & Access</option>
+                <option value="Email">Email</option>
+                <option value="Security">Security</option>
+                <option value="Server / Infrastructure">Server / Infrastructure</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Correct Priority</label>
+              <select id="corr-prio" class="form-control" style="padding: 8px 10px; font-size: 12px;">
+                <option value="LOW">LOW</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="HIGH">HIGH</option>
+                <option value="CRITICAL">CRITICAL</option>
+              </select>
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+              <button class="btn btn-primary" style="padding: 8px 16px; font-size: 12px;" onclick="submitHumanCorrection()">
+                Submit Correction
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lifecycle Workflow Actions -->
+        <div>
+          <div class="ai-pred-label" style="margin-bottom: 8px;">Lifecycle Transition Actions</div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="modal-actions-container">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Comments Thread -->
+        <div>
+          <div class="ai-pred-label" style="margin-bottom: 8px;">Comments & Activity Notes</div>
+          <div id="modal-comments" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; margin-bottom: 12px;">
+            <div style="font-size: 12px; color: var(--text-muted); padding: 10px 0;">No comments logged yet.</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="comment-input" placeholder="Type an update or resolution note..." class="form-control" style="flex: 1;">
+            <button class="btn btn-secondary" onclick="postComment()">Add Note</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
